@@ -3,9 +3,11 @@ import cv2
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d
 from mpl_toolkits.mplot3d import Axes3D
-  
+import pdb
+
 def show_2d(img, points, c, edges):
   num_joints = points.shape[0]
+
   points = ((points.reshape(num_joints, -1))).astype(np.int32)
   for j in range(num_joints):
     cv2.circle(img, (points[j, 0], points[j, 1]), 3, c, -1)

@@ -63,9 +63,9 @@ def get_preds_3d(heatmap, depthmap):
     for j in range(preds.shape[1]):
       idx = min(j, depthmap.shape[1] - 1)
       pt = preds[i, j]
-      preds_3d[i, j, 2] = depthmap[i, idx, pt[1], pt[0]]
-      preds_3d[i, j, :2] = 1.0 * preds[i, j] / output_res
-    preds_3d[i] = preds_3d[i] - preds_3d[i, 6:7]
+      preds_3d[i, j, 2] = depthmap[i, idx, pt[1], pt[0]] * output_res
+      preds_3d[i, j, :2] = 1.0 * preds[i, j] 
+    # preds_3d[i] = preds_3d[i] - preds_3d[i, 8:9]
   return preds_3d
 
 

@@ -15,9 +15,7 @@ from model import create_model
 from utils.debugger import Debugger
 from utils.image import get_affine_transform, transform_preds
 from utils.eval import get_preds, get_preds_3d
-from tqdm import tqdm
 
-import pdb
 image_ext = ['jpg', 'jpeg', 'png']
 mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 1, 3)
 std = np.array([0.229, 0.224, 0.225], np.float32).reshape(1, 1, 3)
@@ -27,7 +25,7 @@ def is_image(file_name):
   return ext in image_ext
 
 
-def demo_image(image, model, opt, name):
+def demo_image(image, model, opt):
   s = max(image.shape[0], image.shape[1]) * 1.0
   c = np.array([image.shape[1] / 2., image.shape[0] / 2.], dtype=np.float32)
   trans_input = get_affine_transform(
@@ -38,26 +36,17 @@ def demo_image(image, model, opt, name):
   inp = inp.transpose(2, 0, 1)[np.newaxis, ...].astype(np.float32)
   inp = torch.from_numpy(inp).to(opt.device)
   out = model(inp)[-1]
-
   pred = get_preds(out['hm'].detach().cpu().numpy())[0]
   pred = transform_preds(pred, c, s, (opt.output_w, opt.output_h))
   pred_3d = get_preds_3d(out['hm'].detach().cpu().numpy(), 
                          out['depth'].detach().cpu().numpy())[0]
   
-  if pred_3d[6,:][0] != 0 or pred_3d[6,:][1] != 0:
-    print("A different bias!!")
-    pdb.set_trace()
-
-  bias = np.array([pred[6,0], pred[6,1]])
-  dic = {'pred_3d': pred_3d, 'bias':bias}
-  np.save(name, dic)
-  # print(name)
-  # debugger = Debugger()
-  # debugger.add_img(image)
-  # debugger.add_point_2d(pred, (255, 0, 0))
-  # debugger.add_point_3d(pred_3d, 'b')
-  # debugger.show_all_imgs(pause=False)
-  # debugger.show_3d()
+  debugger = Debugger()
+  debugger.add_img(image)
+  debugger.add_point_2d(pred, (255, 0, 0))
+  debugger.add_point_3d(pred_3d, 'b')
+  debugger.show_all_imgs(pause=False)
+  debugger.show_3d()
 
 def main(opt):
   opt.heads['depth'] = opt.num_output
@@ -71,28 +60,21 @@ def main(opt):
   model, _, _ = create_model(opt)
   model = model.to(opt.device)
   model.eval()
-  # pdb.set_trace()
+
   if os.path.isdir(opt.demo):
     ls = os.listdir(opt.demo)
-    for file_name in tqdm(sorted(ls)):
+    for file_name in sorted(ls):
       if is_image(file_name):
         image_name = os.path.join(opt.demo, file_name)
-        # print('Running {} ...'.format(image_name))
+        print('Running {} ...'.format(image_name))
         image = cv2.imread(image_name)
-        folder3d = opt.demo.rstrip('/') + '_3d_full'
-        name = os.path.join(folder3d, file_name)
-        demo_image(image, model, opt, name.replace('.jpg', '.npy'))
+        demo_image(image, model, opt)
   elif is_image(opt.demo):
     print('Running {} ...'.format(opt.demo))
     image = cv2.imread(opt.demo)
-    demo_image(image, model, opt, name)
+    demo_image(image, model, opt)
     
 
 if __name__ == '__main__':
   opt = opts().parse()
-  data_root = '/home/wenwens/Documents/HumanPose/Pose-Transfer-vae/fashion_data'
-  splits = ['train', 'test']
-  for split in splits:
-    split_path = os.path.join(data_root, split)
-    opt.demo = split_path
-    main(opt)
+  main(opt)
